@@ -136,24 +136,25 @@ MotionData IMU::MotionModel(double t) {
   return data;
 }
 
-//读取生成的imu数据并用imu动力学模型对数据进行计算，最后保存imu积分以后的轨迹，
-//用来验证数据以及模型的有效性。
-void IMU::testImu(std::string src, std::string dist) {
-  std::vector<MotionData> imudata;
-  LoadPose(src, imudata);
-
+/**
+ * IMU integral test with Euler method
+ * @param imudata IMU data
+ * @param output_file output log file
+ */
+void IMU::integralEuler(const std::vector<MotionData>& imudata,
+                        const std::string& output_file) const {
   std::ofstream save_points;
-  save_points.open(dist);
+  save_points.open(output_file);
 
-  double dt = param_.imu_timestep;
-  Eigen::Vector3d Pwb = init_twb_;      // position :    from  imu measurements
-  Eigen::Quaterniond Qwb(init_Rwb_);    // quaterniond:  from imu measurements
-  Eigen::Vector3d Vw = init_velocity_;  // velocity  :   from imu measurements
-  Eigen::Vector3d gw(0, 0, -9.81);      // ENU frame
-  Eigen::Vector3d temp_a;
-  Eigen::Vector3d theta;
+  const double dt = param_.imu_timestep;
+  Eigen::Vector3d Pwb = init_twb_;        // position: from imu measurements
+  Eigen::Quaterniond Qwb(init_Rwb_);      // quaterniond: from imu measurements
+  Eigen::Vector3d Vw = init_velocity_;    // velocity: from imu measurements
+  const Eigen::Vector3d gw(0, 0, -9.81);  // ENU frame
+
+  /// 欧拉积分
   for (int i = 1; i < imudata.size(); ++i) {
-    MotionData imupose = imudata[i];
+    const MotionData imupose = imudata[i];
 
     // delta_q = [1 , 1/2 * thetax , 1/2 * theta_y, 1/2 * theta_z]
     Eigen::Quaterniond dq;
@@ -164,17 +165,16 @@ void IMU::testImu(std::string src, std::string dist) {
     dq.z() = dtheta_half.z();
     dq.normalize();
 
-    /// imu 动力学模型 欧拉积分
-    Eigen::Vector3d acc_w = Qwb * (imupose.imu_acc) +
-                            gw;  // aw = Rwb * ( acc_body - acc_bias ) + gw
+    /// IMU动力学模型
+    // aw = Rwb * ( acc_body - acc_bias ) + gw
+    Eigen::Vector3d acc_w = Qwb * (imupose.imu_acc) + gw;
     Qwb = Qwb * dq;
     Pwb = Pwb + Vw * dt + 0.5 * dt * dt * acc_w;
     Vw = Vw + acc_w * dt;
 
-    /// 中值积分
-
-    //　按着imu postion, imu quaternion , cam postion, cam quaternion
-    //的格式存储，由于没有cam，所以imu存了两次
+    /// save log
+    //按着imu position, imu quaternion , cam position, cam quaternion
+    // 的格式存储，由于没有cam，所以imu存了两次
     save_points << imupose.timestamp << " " << Qwb.w() << " " << Qwb.x() << " "
                 << Qwb.y() << " " << Qwb.z() << " " << Pwb(0) << " " << Pwb(1)
                 << " " << Pwb(2) << " " << Qwb.w() << " " << Qwb.x() << " "
@@ -183,4 +183,82 @@ void IMU::testImu(std::string src, std::string dist) {
   }
 
   std::cout << "test　end" << std::endl;
+}
+
+/**
+ * IMU integral with Mid value
+ */
+void IMU::integralMidValue(const std::vector<MotionData>& imudata,
+                           const std::string& output_file) {
+  std::ofstream save_points;
+  save_points.open(output_file);
+
+  const double dt = param_.imu_timestep;
+  Eigen::Vector3d Pwb = init_twb_;        // position: from imu measurements
+  Eigen::Quaterniond Qwb(init_Rwb_);      // quaterniond: from imu measurements
+  Eigen::Vector3d Vw = init_velocity_;    // velocity: from imu measurements
+  const Eigen::Vector3d gw(0, 0, -9.81);  // ENU frame
+
+  /// 中值积分
+  for (int i = 1; i < imudata.size(); ++i) {
+    const MotionData imupose_previous = imudata[0];
+    const MotionData imupose = imudata[i];
+
+    // delta_q = [1 , 1/2 * thetax , 1/2 * theta_y, 1/2 * theta_z]
+    Eigen::Quaterniond dq;
+    Eigen::Vector3d dtheta_half = imupose.imu_gyro * dt / 2.0;
+    dq.w() = 1;
+    dq.x() = dtheta_half.x();
+    dq.y() = dtheta_half.y();
+    dq.z() = dtheta_half.z();
+    dq.normalize();
+
+    /// IMU动力学模型
+    // todo(congyu)debug
+    // aw = 0.5 * ((Rwb_{k} * ( acc_body_{k} - acc_bias ) + gw) +
+    //              (Rwb_{k+1} * ( acc_body_{k+1} - acc_bias) + gw)
+    Eigen::Vector3d acc_w = 0.5 * ((Qwb * (imupose_previous.imu_acc) + gw) +
+                                   (Qwb * (imupose.imu_acc) + gw));
+
+    Qwb = Qwb * dq;
+    Pwb = Pwb + Vw * dt + 0.5 * dt * dt * acc_w;
+    Vw = Vw + acc_w * dt;
+
+    /// save log
+    //按着imu position, imu quaternion , cam position, cam quaternion
+    // 的格式存储，由于没有cam，所以imu存了两次
+    save_points << imupose.timestamp << " " << Qwb.w() << " " << Qwb.x() << " "
+                << Qwb.y() << " " << Qwb.z() << " " << Pwb(0) << " " << Pwb(1)
+                << " " << Pwb(2) << " " << Qwb.w() << " " << Qwb.x() << " "
+                << Qwb.y() << " " << Qwb.z() << " " << Pwb(0) << " " << Pwb(1)
+                << " " << Pwb(2) << " " << std::endl;
+  }
+
+  std::cout << "test　end" << std::endl;
+}
+
+/**
+ * IMU integral with Runge 龙格库塔法
+ * reference:
+ *  - https://github.com/HeYijia/vio_data_simulation/issues/8
+ */
+void IMU::integralRunge(const std::vector<MotionData>& imudata,
+                        const std::string& output_file) {
+  // todo(congyu)
+  std::ofstream save_points;
+  save_points.open(output_file);
+}
+
+//读取生成的imu数据并用imu动力学模型对数据进行计算，最后保存imu积分以后的轨迹，
+//用来验证数据以及模型的有效性。
+void IMU::testImu(std::string src, std::string dist) {
+  std::vector<MotionData> imudata;
+  LoadPose(src, imudata);
+
+  integralEuler(imudata, std::string("euler_" + dist));
+
+  integralMidValue(imudata, std::string("midvalue_" + dist));
+
+  // todo(congyu)
+  // integralRunge(imudata, std::string("runge_" + dist));
 }
