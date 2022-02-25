@@ -154,11 +154,11 @@ void IMU::integralEuler(const std::vector<MotionData>& imudata,
 
   /// 欧拉积分
   for (int i = 1; i < imudata.size(); ++i) {
-    const MotionData imupose = imudata[i];
+    const MotionData imu = imudata[i];
 
     // delta_q = [1 , 1/2 * thetax , 1/2 * theta_y, 1/2 * theta_z]
     Eigen::Quaterniond dq;
-    Eigen::Vector3d dtheta_half = imupose.imu_gyro * dt / 2.0;
+    Eigen::Vector3d dtheta_half = imu.imu_gyro * dt / 2.0;
     dq.w() = 1;
     dq.x() = dtheta_half.x();
     dq.y() = dtheta_half.y();
@@ -167,7 +167,7 @@ void IMU::integralEuler(const std::vector<MotionData>& imudata,
 
     /// IMU动力学模型
     // aw = Rwb * ( acc_body - acc_bias ) + gw
-    Eigen::Vector3d acc_w = Qwb * (imupose.imu_acc) + gw;
+    Eigen::Vector3d acc_w = Qwb * (imu.imu_acc) + gw;
     Qwb = Qwb * dq;
     Pwb = Pwb + Vw * dt + 0.5 * dt * dt * acc_w;
     Vw = Vw + acc_w * dt;
@@ -175,21 +175,22 @@ void IMU::integralEuler(const std::vector<MotionData>& imudata,
     /// save log
     //按着imu position, imu quaternion , cam position, cam quaternion
     // 的格式存储，由于没有cam，所以imu存了两次
-    save_points << imupose.timestamp << " " << Qwb.w() << " " << Qwb.x() << " "
+    save_points << imu.timestamp << " " << Qwb.w() << " " << Qwb.x() << " "
                 << Qwb.y() << " " << Qwb.z() << " " << Pwb(0) << " " << Pwb(1)
                 << " " << Pwb(2) << " " << Qwb.w() << " " << Qwb.x() << " "
                 << Qwb.y() << " " << Qwb.z() << " " << Pwb(0) << " " << Pwb(1)
                 << " " << Pwb(2) << " " << std::endl;
   }
 
-  std::cout << "test　end" << std::endl;
+  std::cout << "imu integral with euler test　end" << std::endl
+            << " saved file: " << output_file << std::endl;
 }
 
 /**
  * IMU integral with Mid value
  */
 void IMU::integralMidValue(const std::vector<MotionData>& imudata,
-                           const std::string& output_file) {
+                           const std::string& output_file) const {
   std::ofstream save_points;
   save_points.open(output_file);
 
@@ -200,13 +201,16 @@ void IMU::integralMidValue(const std::vector<MotionData>& imudata,
   const Eigen::Vector3d gw(0, 0, -9.81);  // ENU frame
 
   /// 中值积分
+  Eigen::Quaterniond Qwb_previous(init_Rwb_);
   for (int i = 1; i < imudata.size(); ++i) {
-    const MotionData imupose_previous = imudata[0];
-    const MotionData imupose = imudata[i];
+    const MotionData imu_previous = imudata[i - 1];
+    const MotionData imu = imudata[i];
 
     // delta_q = [1 , 1/2 * thetax , 1/2 * theta_y, 1/2 * theta_z]
     Eigen::Quaterniond dq;
-    Eigen::Vector3d dtheta_half = imupose.imu_gyro * dt / 2.0;
+    // omega = 0.5 * ((omega_previous - gyro_bias) + (omega - gyro_bias))
+    Eigen::Vector3d imu_gyro_mid = 0.5 * (imu_previous.imu_gyro + imu.imu_gyro);
+    Eigen::Vector3d dtheta_half = imu_gyro_mid * dt / 2.0;
     dq.w() = 1;
     dq.x() = dtheta_half.x();
     dq.y() = dtheta_half.y();
@@ -214,11 +218,13 @@ void IMU::integralMidValue(const std::vector<MotionData>& imudata,
     dq.normalize();
 
     /// IMU动力学模型
-    // todo(congyu)debug
     // aw = 0.5 * ((Rwb_{k} * ( acc_body_{k} - acc_bias ) + gw) +
     //              (Rwb_{k+1} * ( acc_body_{k+1} - acc_bias) + gw)
-    Eigen::Vector3d acc_w = 0.5 * ((Qwb * (imupose_previous.imu_acc) + gw) +
-                                   (Qwb * (imupose.imu_acc) + gw));
+    Eigen::Vector3d acc_w =
+        0.5 * ((Qwb_previous * (imu_previous.imu_acc) + gw) +
+               (Qwb * (imu.imu_acc) + gw));
+    // update cache
+    Qwb_previous = Qwb;
 
     Qwb = Qwb * dq;
     Pwb = Pwb + Vw * dt + 0.5 * dt * dt * acc_w;
@@ -227,14 +233,15 @@ void IMU::integralMidValue(const std::vector<MotionData>& imudata,
     /// save log
     //按着imu position, imu quaternion , cam position, cam quaternion
     // 的格式存储，由于没有cam，所以imu存了两次
-    save_points << imupose.timestamp << " " << Qwb.w() << " " << Qwb.x() << " "
+    save_points << imu.timestamp << " " << Qwb.w() << " " << Qwb.x() << " "
                 << Qwb.y() << " " << Qwb.z() << " " << Pwb(0) << " " << Pwb(1)
                 << " " << Pwb(2) << " " << Qwb.w() << " " << Qwb.x() << " "
                 << Qwb.y() << " " << Qwb.z() << " " << Pwb(0) << " " << Pwb(1)
                 << " " << Pwb(2) << " " << std::endl;
   }
 
-  std::cout << "test　end" << std::endl;
+  std::cout << "imu integral with mid value test end" << std::endl
+            << " saved file: " << output_file << std::endl;
 }
 
 /**
@@ -243,10 +250,13 @@ void IMU::integralMidValue(const std::vector<MotionData>& imudata,
  *  - https://github.com/HeYijia/vio_data_simulation/issues/8
  */
 void IMU::integralRunge(const std::vector<MotionData>& imudata,
-                        const std::string& output_file) {
+                        const std::string& output_file) const {
   // todo(congyu)
   std::ofstream save_points;
   save_points.open(output_file);
+
+  std::cout << "imu integral with mid value test end" << std::endl
+            << " saved file: " << output_file << std::endl;
 }
 
 //读取生成的imu数据并用imu动力学模型对数据进行计算，最后保存imu积分以后的轨迹，
