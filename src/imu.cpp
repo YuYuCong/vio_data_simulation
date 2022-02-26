@@ -182,7 +182,7 @@ void IMU::integralEuler(const std::vector<MotionData>& imudata,
                 << " " << Pwb(2) << " " << std::endl;
   }
 
-  std::cout << "imu integral with euler test　end" << std::endl
+  std::cout << "imu integral with euler test end" << std::endl
             << " saved file: " << output_file << std::endl;
 }
 

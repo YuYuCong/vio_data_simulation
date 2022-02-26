@@ -52,7 +52,7 @@ class IMU {
                      const std::string& output_file) const;
   void integralMidValue(const std::vector<MotionData>& imudata,
                         const std::string& output_file) const;
-  void integralRunge(const std::vector<MotionData>& imudata,
+  void integralRungeKutta(const std::vector<MotionData>& imudata,
                      const std::string& output_file) const;
 };
 

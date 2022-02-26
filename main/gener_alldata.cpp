@@ -69,59 +69,41 @@ void CreatePointsLines(Points& points, Lines& lines) {
 }
 
 int main() {
-  // Eigen::Quaterniond Qwb;
-  // Qwb.setIdentity();
-  // Eigen::Vector3d omega (0,0,M_PI/10);
-  // double dt_tmp = 0.005;
-  // for (double i = 0; i < 20.; i += dt_tmp) {
-  //     Eigen::Quaterniond dq;
-  //     Eigen::Vector3d dtheta_half =  omega * dt_tmp /2.0;
-  //     dq.w() = 1;
-  //     dq.x() = dtheta_half.x();
-  //     dq.y() = dtheta_half.y();
-  //     dq.z() = dtheta_half.z();
-  //     Qwb = Qwb * dq;
-  // }
-  // std::cout << Qwb.coeffs().transpose() <<"\n"<<Qwb.toRotationMatrix() <<
-  // std::endl;
-
-  // 建立keyframe文件夹
-  mkdir("keyframe", 0777);
-
-  // 生成3d points
+  /// 生成3d points
   Points points;
   Lines lines;
   CreatePointsLines(points, lines);
 
-  // IMU model
+  /// IMU data generate
   Param params;
   IMU imuGen(params);
-
-  // create imu data
-  // imu pose gyro acc
+  // create imu data(imu_pose gyro acc)
   std::vector<MotionData> imudata;
   std::vector<MotionData> imudata_noise;
   for (float t = params.t_start; t < params.t_end;) {
+    // 运动设计值 ground truth
     MotionData data = imuGen.MotionModel(t);
     imudata.push_back(data);
 
-    // add imu noise
+    // 添加噪声 add imu noise
     MotionData data_noise = data;
     imuGen.addIMUnoise(data_noise);
     imudata_noise.push_back(data_noise);
 
     t += 1.0 / params.imu_frequency;
   }
-  imuGen.init_velocity_ = imudata[0].imu_velocity;
-  imuGen.init_twb_ = imudata.at(0).twb;
-  imuGen.init_Rwb_ = imudata.at(0).Rwb;
   save_Pose("imu_pose.txt", imudata);
   save_Pose("imu_pose_noise.txt", imudata_noise);
 
-  // test the imu data, integrate the imu data to generate the imu trajecotry
+  // test the generated imu data, integrate the imu data to generate the imu
+  // trajectory
+  imuGen.init_velocity_ = imudata[0].imu_velocity;
+  imuGen.init_twb_ = imudata.at(0).twb;
+  imuGen.init_Rwb_ = imudata.at(0).Rwb;
   imuGen.testImu("imu_pose.txt", "imu_int_pose.txt");
   imuGen.testImu("imu_pose_noise.txt", "imu_int_pose_noise.txt");
 
+  /// camera pose generate
   // cam pose
   std::vector<MotionData> camdata;
   for (float t = params.t_start; t < params.t_end;) {
@@ -140,6 +122,10 @@ int main() {
   save_Pose("cam_pose.txt", camdata);
   save_Pose_asTUM("cam_pose_tum.txt", camdata);
 
+  /// observations generate
+  // 建立keyframe文件夹
+  mkdir("keyframe", 0777);
+  // 特征点
   // points obs in image
   for (int n = 0; n < camdata.size(); ++n) {
     MotionData data = camdata[n];
@@ -175,6 +161,7 @@ int main() {
     save_features(filename1.str(), points_cam, features_cam);
   }
 
+  // 特征线
   // lines obs in image
   for (int n = 0; n < camdata.size(); ++n) {
     MotionData data = camdata[n];

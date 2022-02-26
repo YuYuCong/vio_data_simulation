@@ -55,19 +55,22 @@ midvalue_noise_quaterntions = data[:, [tx_index + 6, tx_index + 3, tx_index + 4,
 fig = plt.figure()
 ax = fig.gca(projection='3d')
 
+# show ground truth
 ax.plot(imu_gt_position[:, 0], imu_gt_position[:, 1], imu_gt_position[:, 2],
         label='gt')
 
+# show integral with imu ground truth data
 ax.plot(euler_position[:, 0], euler_position[:, 1], euler_position[:, 2],
         label='euler_integral')
 ax.plot(midvalue_position[:, 0], midvalue_position[:, 1],
         midvalue_position[:, 2],
         label='midvalue_integral')
 
-# ax.plot(euler_noise_position[:, 0], euler_noise_position[:, 1],
-#         euler_noise_position[:, 2], label='euler_integral_noise')
-# ax.plot(midvalue_noise_position[:, 0], midvalue_noise_position[:, 1],
-#         midvalue_noise_position[:, 2], label='midvalue_integral_noise')
+# show integral with imu noised data
+ax.plot(euler_noise_position[:, 0], euler_noise_position[:, 1],
+        euler_noise_position[:, 2], label='euler_integral_noise')
+ax.plot(midvalue_noise_position[:, 0], midvalue_noise_position[:, 1],
+        midvalue_noise_position[:, 2], label='midvalue_integral_noise')
 
 ax.plot([imu_gt_position[0, 0]], [imu_gt_position[0, 1]],
         [imu_gt_position[0, 2]], 'r.',
