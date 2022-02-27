@@ -245,17 +245,17 @@ void IMU::integralMidValue(const std::vector<MotionData>& imudata,
 }
 
 /**
- * IMU integral with Runge 龙格库塔法
+ * IMU integral with RungeKutta 龙格库塔法
  * reference:
  *  - https://github.com/HeYijia/vio_data_simulation/issues/8
  */
-void IMU::integralRunge(const std::vector<MotionData>& imudata,
+void IMU::integralRungeKutta(const std::vector<MotionData>& imudata,
                         const std::string& output_file) const {
   // todo(congyu)
   std::ofstream save_points;
   save_points.open(output_file);
 
-  std::cout << "imu integral with mid value test end" << std::endl
+  std::cout << "imu integral with RungeKutta test end" << std::endl
             << " saved file: " << output_file << std::endl;
 }
 
@@ -269,6 +269,5 @@ void IMU::testImu(std::string src, std::string dist) {
 
   integralMidValue(imudata, std::string("midvalue_" + dist));
 
-  // todo(congyu)
-  // integralRunge(imudata, std::string("runge_" + dist));
+  // integralRungeKutta(imudata, std::string("runge_" + dist));
 }
