@@ -31,3 +31,5 @@ LIST(APPEND LINK_LIBS
 ADD_EXECUTABLE(data_gen main/gener_alldata.cpp src/param.h src/param.cpp src/utilities.h src/utilities.cpp src/imu.h src/imu.cpp)
 TARGET_LINK_LIBRARIES(data_gen ${LINK_LIBS})
 
+ADD_EXECUTABLE(imu_data_simulation main/imu_data_simulation.cpp src/param.h src/param.cpp src/utilities.h src/utilities.cpp src/imu.h src/imu.cpp)
+TARGET_LINK_LIBRARIES(data_gen ${LINK_LIBS})

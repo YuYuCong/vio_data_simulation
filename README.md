@@ -49,11 +49,23 @@ matplot等依赖项
 
 ## Usage
 
+生成围绕房子运动的IMU和Camera以及观测仿真数据
+
 ```shell
 ./build.sh
 cd bin
 ./data_gen
 ```
+
+生成IMU静止带噪声仿真数据
+
+```shell
+./build
+cd bin
+./imu_data_simulation
+```
+
+输出 imu_noise_data_sim.txt 文件
 
 ## 可视化
 
