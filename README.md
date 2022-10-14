@@ -47,6 +47,22 @@ matplot等依赖项
 
 注意，由于imu和cam的存储采用的是同一个函数，所以cam也会存储一些gyro,acc这些数据，但是没用，是多余存储的。
 
+## Lib
+
+Sophus
+
+```c++
+cd ~/src
+git clone https://github.com/strasdat/Sophus.git
+cd Sophus
+git checkout a621ff
+mkdir build
+cd build
+cmake ..
+make -j4
+只需编译即可，无需安装
+```
+
 ## Usage
 
 生成围绕房子运动的IMU和Camera以及观测仿真数据
