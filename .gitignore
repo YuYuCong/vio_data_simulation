@@ -1,7 +1,6 @@
 *.py[cod]
 build/
-bin/keyframe/
-bin/*.txt
+bin/
 *~
 *.DS_Store
 .idea

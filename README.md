@@ -4,7 +4,7 @@ imu和cam数据仿真，用于vio算法测试，代码有任何问题都欢迎�
 
 we also create a ros_version in ros_version branch.
 
-![demo pic](https://github.com/HeYijia/vio_data_simulation/blob/master/bin/demo.png?raw=true)
+![demo pic](https://github.com/YuYuCong/vio_data_simulation/blob/master/resource/demo.png?raw=true)
 
 ## 坐标系
 
