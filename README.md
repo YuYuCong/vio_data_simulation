@@ -1,4 +1,4 @@
-# imusim
+# vio data simulation
 
 imu和cam数据仿真，用于vio算法测试，代码有任何问题都欢迎交流 heyijia_2013@163.com。
 
@@ -20,11 +20,9 @@ we also create a ros_version in ros_version branch.
 
 ## 代码结构
 
-main/gener_alldata.cpp : 用于生成imu数据，相机轨迹，特征点像素坐标，特征点的3d坐标
+main/generate_all_data.cpp : 用于生成imu数据，相机轨迹，特征点像素坐标，特征点的3d坐标
 
-src/paramc.h：imu噪声参数，imu频率，相机内参数等等
-
-src/camera_model.cpp：相机模型，调用的svo，目前代码里这个文件删掉了
+src/param.h：imu噪声参数，imu频率，相机内参数等等
 
 python_tool/：文件夹里为可视化工具，draw_points.py就是动态绘制相机轨迹和观测到的特征点。如果是ubuntu不需额外安装，windows需要安装python
 matplot等依赖项
@@ -60,7 +58,7 @@ mkdir build
 cd build
 cmake ..
 make -j4
-只需编译即可，无需安装
+sudo make install
 ```
 
 ## Usage
@@ -70,18 +68,18 @@ make -j4
 ```shell
 ./build.sh
 cd bin
-./data_gen
+./generate_all_data
 ```
 
 生成IMU静止带噪声仿真数据
 
 ```shell
-./build
+./build.sh
 cd bin
 ./imu_data_simulation
 ```
 
-输出 imu_noise_data_sim.txt 文件
+输出 imu_noise_data_sim.txt 文件，数据格式为timestamp ax ay az gx gy gz
 
 ## 可视化
 

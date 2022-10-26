@@ -156,7 +156,7 @@ void IMU::integralEuler(const std::vector<MotionData>& imudata,
   for (int i = 1; i < imudata.size(); ++i) {
     const MotionData imu = imudata[i];
 
-    // delta_q = [1 , 1/2 * thetax , 1/2 * theta_y, 1/2 * theta_z]
+    // delta_q = [1 , 1/2 * theta_x , 1/2 * theta_y, 1/2 * theta_z]
     Eigen::Quaterniond dq;
     Eigen::Vector3d dtheta_half = imu.imu_gyro * dt / 2.0;
     dq.w() = 1;
@@ -206,7 +206,7 @@ void IMU::integralMidValue(const std::vector<MotionData>& imudata,
     const MotionData imu_previous = imudata[i - 1];
     const MotionData imu = imudata[i];
 
-    // delta_q = [1 , 1/2 * thetax , 1/2 * theta_y, 1/2 * theta_z]
+    // delta_q = [1 , 1/2 * theta_x , 1/2 * theta_y, 1/2 * theta_z]
     Eigen::Quaterniond dq;
     // omega = 0.5 * ((omega_previous - gyro_bias) + (omega - gyro_bias))
     Eigen::Vector3d imu_gyro_mid = 0.5 * (imu_previous.imu_gyro + imu.imu_gyro);
